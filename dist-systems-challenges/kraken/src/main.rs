@@ -81,7 +81,6 @@ impl Node {
 
     fn send_message(msg: Message) {
         if let Ok(msg_json) = serde_json::to_string(&msg) {
-            eprintln!("Sending message: {}", msg_json);
             println!("{}", msg_json);
         } else {
             eprintln!("Unable to format message to json string.");
@@ -92,7 +91,7 @@ impl Node {
         loop {
             if let Ok(msg) = self.in_messages_recv.recv() {
                 if msg.body.msg_type == "init" {
-                    self.handle_message_in(msg);
+                    self.handle_message_init(msg);
                 } else {
                     if let Some(message_handles) = self.message_handles.as_ref() {
                         let msg_out = msg.clone();
@@ -100,7 +99,6 @@ impl Node {
                             .iter()
                             .map(move |f| {
                                 if let Some(m) = f(msg_out.body.msg_type.clone(), msg_out.clone()) {
-                                    eprintln!("Sending message...");
                                     Node::send_message(m);
                                 }
                             })
@@ -111,7 +109,7 @@ impl Node {
         }
     }
 
-    fn handle_message_in(&mut self, msg: Message) {
+    fn handle_message_init(&mut self, msg: Message) {
         if let Some(id) = msg.body.node_id {
             self.node_id = Some(id.clone());
             Node::send_message(Message {
