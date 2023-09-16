@@ -35,12 +35,18 @@ func main() {
 			return err
 		}
 		body["type"] = "broadcast_ok"
+		resBody := map[string]any{
+			"type":        "broadcast_ok",
+			"msg_id":      body["msg_id"],
+			"in_reply_to": body["in_reply_to"],
+		}
 		messageId := body["message"].(float64)
 		if !slices.Contains(allNodes, messageId) {
 			allNodes = append(allNodes, messageId)
 		}
-		return n.Reply(msg, body)
+		return n.Reply(msg, resBody)
 	})
+	// Broadcast read
 	n.Handle("read", func(msg maelstrom.Message) error {
 		var body map[string]any
 		if err := json.Unmarshal(msg.Body, &body); err != nil {
