@@ -3,6 +3,32 @@ use std::io::{self, BufRead};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
+fn main() {
+    let mut node: Node = Default::default();
+    node.handle_message(Box::new(|msg_type, mut msg| {
+        if msg_type == "echo" {
+            let dest = msg.dest;
+            msg.dest = msg.src;
+            msg.src = dest;
+            msg.body.in_reply_to = Some(msg.body.msg_id);
+            msg.body.msg_type = "echo_ok".to_string();
+        }
+        Some(msg)
+    }));
+    node.handle_message(Box::new(|msg_type, mut msg| {
+        if msg_type == "generate" {
+            let dest = msg.dest;
+            msg.dest = msg.src;
+            msg.src = dest;
+            msg.body.in_reply_to = Some(msg.body.msg_id);
+            msg.body.msg_type = "generate_ok".to_string();
+            msg.body.id = Some(uuid::Uuid::new_v4().to_string());
+        }
+        Some(msg)
+    }));
+    node.run();
+}
+
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 struct MessageBody {
     #[serde(alias = "type")]
@@ -17,6 +43,8 @@ struct MessageBody {
     in_reply_to: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     echo: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    id: Option<String>,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
@@ -124,19 +152,4 @@ impl Node {
             });
         }
     }
-}
-
-fn main() {
-    let mut node: Node = Default::default();
-    node.handle_message(Box::new(|msg_type, mut msg| {
-        if msg_type == "echo" {
-            let dest = msg.dest;
-            msg.dest = msg.src;
-            msg.src = dest;
-            msg.body.in_reply_to = Some(msg.body.msg_id);
-            msg.body.msg_type = "echo_ok".to_string();
-        }
-        Some(msg)
-    }));
-    node.run();
 }
